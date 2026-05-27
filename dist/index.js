@@ -2,14 +2,11 @@ import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { parse as parseYaml } from "yaml";
 export function loadConfig(path) {
-    const configPath = path || findConfigFile();
-    if (!configPath) {
-        throw new Error("No nook.yaml found. Provide a config path or inline config.");
+    const manifest = loadManifest(path);
+    if (!manifest.instance || !manifest.secret) {
+        throw new Error("nook.yaml: 'instance' and 'secret' are required for full config. Use loadManifest() for YAML without connection details.");
     }
-    const content = readFileSync(configPath, "utf-8");
-    const parsed = parseYaml(content);
-    validateConfig(parsed);
-    return parsed;
+    return manifest;
 }
 function findConfigFile() {
     const candidates = ["nook.yaml", "nook.yml"];
@@ -28,10 +25,16 @@ function validateConfig(config) {
     const c = config;
     if (!c.app || typeof c.app !== "string")
         throw new Error("nook.yaml: 'app' is required");
-    if (!c.instance || typeof c.instance !== "string")
-        throw new Error("nook.yaml: 'instance' is required");
-    if (!c.secret || typeof c.secret !== "string")
-        throw new Error("nook.yaml: 'secret' is required");
+}
+export function loadManifest(path) {
+    const configPath = path || findConfigFile();
+    if (!configPath) {
+        throw new Error("No nook.yaml found. Provide a config path or inline config.");
+    }
+    const content = readFileSync(configPath, "utf-8");
+    const parsed = parseYaml(content);
+    validateConfig(parsed);
+    return parsed;
 }
 export class PoolClient {
     constructor(options) {
