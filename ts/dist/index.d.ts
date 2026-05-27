@@ -7,6 +7,15 @@ export interface PoolConfig {
         listen?: string[];
     };
 }
+export interface PoolManifest {
+    app: string;
+    instance?: string;
+    secret?: string;
+    events?: {
+        emit?: string[];
+        listen?: string[];
+    };
+}
 export interface PoolClientOptions {
     config?: PoolConfig;
     configPath?: string;
@@ -26,6 +35,7 @@ export interface EventMeta {
 type EventHandler<T = unknown> = (payload: T, meta: EventMeta) => void | Promise<void>;
 type Unsubscribe = () => void;
 export declare function loadConfig(path?: string): PoolConfig;
+export declare function loadManifest(path?: string): PoolManifest;
 export declare class PoolClient {
     private config;
     private ws;

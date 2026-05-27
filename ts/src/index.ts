@@ -12,6 +12,16 @@ export interface PoolConfig {
   };
 }
 
+export interface PoolManifest {
+  app: string;
+  instance?: string;
+  secret?: string;
+  events?: {
+    emit?: string[];
+    listen?: string[];
+  };
+}
+
 export interface PoolClientOptions {
   config?: PoolConfig;
   configPath?: string;
@@ -37,16 +47,13 @@ type EventHandler<T = unknown> = (
 type Unsubscribe = () => void;
 
 export function loadConfig(path?: string): PoolConfig {
-  const configPath = path || findConfigFile();
-  if (!configPath) {
+  const manifest = loadManifest(path);
+  if (!manifest.instance || !manifest.secret) {
     throw new Error(
-      "No nook.yaml found. Provide a config path or inline config.",
+      "nook.yaml: 'instance' and 'secret' are required for full config. Use loadManifest() for YAML without connection details.",
     );
   }
-  const content = readFileSync(configPath, "utf-8");
-  const parsed = parseYaml(content);
-  validateConfig(parsed);
-  return parsed as PoolConfig;
+  return manifest as PoolConfig;
 }
 
 function findConfigFile(): string | null {
@@ -64,14 +71,23 @@ function findConfigFile(): string | null {
   return null;
 }
 
-function validateConfig(config: unknown): asserts config is PoolConfig {
+function validateConfig(config: unknown): asserts config is PoolManifest {
   const c = config as Record<string, unknown>;
   if (!c.app || typeof c.app !== "string")
     throw new Error("nook.yaml: 'app' is required");
-  if (!c.instance || typeof c.instance !== "string")
-    throw new Error("nook.yaml: 'instance' is required");
-  if (!c.secret || typeof c.secret !== "string")
-    throw new Error("nook.yaml: 'secret' is required");
+}
+
+export function loadManifest(path?: string): PoolManifest {
+  const configPath = path || findConfigFile();
+  if (!configPath) {
+    throw new Error(
+      "No nook.yaml found. Provide a config path or inline config.",
+    );
+  }
+  const content = readFileSync(configPath, "utf-8");
+  const parsed = parseYaml(content);
+  validateConfig(parsed);
+  return parsed as PoolManifest;
 }
 
 export class PoolClient {
