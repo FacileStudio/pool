@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math"
 	"net/http"
 	"net/url"
@@ -248,7 +249,8 @@ func (c *Client) register(ctx context.Context) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return fmt.Errorf("registration failed with status %d", resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("registration failed: %d %s", resp.StatusCode, string(body))
 	}
 
 	var result struct {
@@ -458,7 +460,8 @@ func (c *Client) scheduleReconnect() {
 
 	time.Sleep(delay)
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 	if err := c.register(ctx); err != nil {
 		if c.onError != nil {
 			c.onError(fmt.Errorf("reconnect register: %w", err))
