@@ -60,6 +60,7 @@ export declare class PoolClient {
     connect(): Promise<void>;
     disconnect(): Promise<void>;
     emit<T = unknown>(channel: string, payload: T): void;
+    emitNow<T = unknown>(channel: string, payload: T): boolean;
     listen<T = unknown>(channel: string, handler: EventHandler<T>): Unsubscribe;
     get isConnected(): boolean;
     identity(): string;

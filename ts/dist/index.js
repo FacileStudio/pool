@@ -92,6 +92,23 @@ export class PoolClient {
             this.pendingMessages.push(msg);
         }
     }
+    // Sends immediately or reports failure; never buffers. Callers that
+    // provide their own durability (e.g. an outbox drainer) must use this
+    // instead of emit(), whose in-memory buffering would let them mark an
+    // event as sent when it only sits in RAM.
+    emitNow(channel, payload) {
+        if (!this.connected || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
+            return false;
+        }
+        this.ws.send(JSON.stringify({
+            type: "event",
+            id: crypto.randomUUID(),
+            channel,
+            payload,
+            timestamp: Date.now(),
+        }));
+        return true;
+    }
     listen(channel, handler) {
         if (!this.handlers.has(channel)) {
             this.handlers.set(channel, new Set());

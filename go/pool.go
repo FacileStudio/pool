@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -19,6 +20,9 @@ import (
 	"github.com/gorilla/websocket"
 	"gopkg.in/yaml.v3"
 )
+
+// ErrNotConnected is returned by EmitNow when no live connection exists.
+var ErrNotConnected = errors.New("pool: not connected")
 
 type Config struct {
 	App        string      `yaml:"app" json:"app"`
@@ -203,6 +207,38 @@ func (c *Client) Emit(channel string, payload any) error {
 	c.pending = append(c.pending, data)
 	c.mu.Unlock()
 	return nil
+}
+
+// EmitNow sends immediately or returns an error; it never buffers. Callers
+// that provide their own durability (e.g. an outbox drainer) must use this
+// instead of Emit, whose in-memory buffering would let them mark an event as
+// sent when it only sits in RAM.
+func (c *Client) EmitNow(channel string, payload any) error {
+	msg := map[string]any{
+		"type":      "event",
+		"id":        generateID(),
+		"channel":   channel,
+		"payload":   payload,
+		"timestamp": time.Now().UnixMilli(),
+	}
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return err
+	}
+
+	c.mu.RLock()
+	connected := c.connected
+	conn := c.conn
+	c.mu.RUnlock()
+
+	if !connected || conn == nil {
+		return ErrNotConnected
+	}
+
+	c.writeMu.Lock()
+	err = conn.WriteMessage(websocket.TextMessage, data)
+	c.writeMu.Unlock()
+	return err
 }
 
 func (c *Client) Listen(channel string, handler EventHandler) func() {
