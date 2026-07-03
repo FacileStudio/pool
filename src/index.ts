@@ -6,6 +6,7 @@ export interface PoolConfig {
   app: string;
   instance: string;
   secret: string;
+  instance_id?: string;
   events?: {
     emit?: string[];
     listen?: string[];
@@ -16,6 +17,7 @@ export interface PoolManifest {
   app: string;
   instance?: string;
   secret?: string;
+  instance_id?: string;
   events?: {
     emit?: string[];
     listen?: string[];
@@ -171,6 +173,12 @@ export class PoolClient {
     return this.connected;
   }
 
+  identity(): string {
+    return this.config.instance_id
+      ? `${this.config.app}:${this.config.instance_id}`
+      : this.config.app;
+  }
+
   get currentEpoch(): string {
     return this.epoch;
   }
@@ -182,6 +190,7 @@ export class PoolClient {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         app: this.config.app,
+        instance_id: this.config.instance_id,
         secret: this.config.secret,
         events: this.config.events,
       }),
@@ -275,7 +284,7 @@ export class PoolClient {
 
       case "event": {
         const sender = msg.sender as string;
-        if (sender === this.config.app) return;
+        if (sender === this.identity()) return;
 
         const channel = msg.channel as string;
         const offset = msg.offset as number;

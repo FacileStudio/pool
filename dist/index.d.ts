@@ -2,6 +2,7 @@ export interface PoolConfig {
     app: string;
     instance: string;
     secret: string;
+    instance_id?: string;
     events?: {
         emit?: string[];
         listen?: string[];
@@ -11,6 +12,7 @@ export interface PoolManifest {
     app: string;
     instance?: string;
     secret?: string;
+    instance_id?: string;
     events?: {
         emit?: string[];
         listen?: string[];
@@ -60,6 +62,7 @@ export declare class PoolClient {
     emit<T = unknown>(channel: string, payload: T): void;
     listen<T = unknown>(channel: string, handler: EventHandler<T>): Unsubscribe;
     get isConnected(): boolean;
+    identity(): string;
     get currentEpoch(): string;
     private register;
     private openWebSocket;

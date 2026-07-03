@@ -104,6 +104,11 @@ export class PoolClient {
     get isConnected() {
         return this.connected;
     }
+    identity() {
+        return this.config.instance_id
+            ? `${this.config.app}:${this.config.instance_id}`
+            : this.config.app;
+    }
     get currentEpoch() {
         return this.epoch;
     }
@@ -114,6 +119,7 @@ export class PoolClient {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 app: this.config.app,
+                instance_id: this.config.instance_id,
                 secret: this.config.secret,
                 events: this.config.events,
             }),
@@ -190,7 +196,7 @@ export class PoolClient {
             }
             case "event": {
                 const sender = msg.sender;
-                if (sender === this.config.app)
+                if (sender === this.identity())
                     return;
                 const channel = msg.channel;
                 const offset = msg.offset;
