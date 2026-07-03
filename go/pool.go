@@ -21,10 +21,11 @@ import (
 )
 
 type Config struct {
-	App      string      `yaml:"app" json:"app"`
-	Instance string      `yaml:"instance" json:"instance"`
-	Secret   string      `yaml:"secret" json:"secret"`
-	Events   EventConfig `yaml:"events" json:"events"`
+	App        string      `yaml:"app" json:"app"`
+	Instance   string      `yaml:"instance" json:"instance"`
+	Secret     string      `yaml:"secret" json:"secret"`
+	InstanceID string      `yaml:"instance_id" json:"instance_id"`
+	Events     EventConfig `yaml:"events" json:"events"`
 }
 
 type EventConfig struct {
@@ -228,12 +229,22 @@ func (c *Client) IsConnected() bool {
 	return c.connected
 }
 
+// Identity returns the app identity used by the pool for echo filtering:
+// "app" alone, or "app:instance_id" when an instance id is configured.
+func (c *Client) Identity() string {
+	if c.config.InstanceID != "" {
+		return c.config.App + ":" + c.config.InstanceID
+	}
+	return c.config.App
+}
+
 func (c *Client) register(ctx context.Context) error {
 	regURL := c.config.Instance + "/api/pool/register"
 	body, _ := json.Marshal(map[string]any{
-		"app":    c.config.App,
-		"secret": c.config.Secret,
-		"events": c.config.Events,
+		"app":         c.config.App,
+		"instance_id": c.config.InstanceID,
+		"secret":      c.config.Secret,
+		"events":      c.config.Events,
 	})
 
 	req, err := http.NewRequestWithContext(ctx, "POST", regURL, bytes.NewReader(body))
@@ -380,7 +391,7 @@ func (c *Client) handleMessage(raw []byte) {
 
 	case "event":
 		sender, _ := msg["sender"].(string)
-		if sender == c.config.App {
+		if sender == c.Identity() {
 			return
 		}
 

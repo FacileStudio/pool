@@ -20,6 +20,8 @@ Pool connects Facile Suite apps to Nook via WebSocket for real-time event sync. 
 
 ## Protocol
 
+Registration may include an optional `instance_id`; the pool then identifies the client as `app:instance_id` (its `sender` on events), letting several instances of the same app share one pool. Without it, identity is the bare app name.
+
 Messages are JSON over WebSocket:
 - Client sends: `event`, `ack`, `subscribe`, `ping`
 - Server sends: `welcome`, `event`, `subscribed`, `pong`, `error`
